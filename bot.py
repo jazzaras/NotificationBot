@@ -1,22 +1,101 @@
 import telebot
-import time
+import time as thetime
 import pandas
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 import json
 from datetime import datetime
+import threading
+import os
 
 # IDI is the id index and time index and so on... it is the user index when all values are in a list
 # excelIndex on the other hand is the row in excel file in which the user information are in
 
 BOT_TOKEN = "5795294189:AAEmDCQ9t0SmznafZEBP-Ivrc7HS2IDZW8I"
 
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 filename = 'data.xlsx'
+path = os.path.join(BASE_DIR, filename)
 
 bot = telebot.TeleBot(BOT_TOKEN)
 days = ['sun', 'mon', 'tue', 'wed', 'Thu', 'fri', 'sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+def stringToList(StringinListFormat):
+	theList = StringinListFormat.replace("[", "")
+	theList = theList.replace("]", "")
+	theList = theList.replace("'", "")
+	theList = theList.split(",")
+	theList = [item.strip() for item in theList]
+	return theList
+
+# a function that loops through our excel file and send messages if time, day is now
+def checkingNotification():
+	
+	while True:
+
+		thetime.sleep(10)
+
+		df = pandas.read_excel(filename, sheet_name='main')
+		wb = load_workbook(filename)
+		ws = wb.worksheets[0]
+
+
+		# Getting information from excel sheet
+		ids = df['Chatid'].tolist()
+		day = df['Day'].tolist()
+		time = df['Time'].tolist()	
+		done = df['Done'].tolist()
+
+		# Getting times and dates
+		current = datetime.now()
+		dayName = current.strftime('%a').lower()
+		currentTime = current.strftime("%H:%M")
+
+
+
+
+
+
+		# loop for x times --> x is the number of ids
+		for i in range(len(ids)):
+
+			userdays = stringToList(day[i])
+
+			usertimes = stringToList(time[i])
+
+			for x in range(len(userdays)):
+				if dayName == userdays[x]:
+					if currentTime == usertimes[x]:
+						if not done[i]:
+							# Send Noti0fication
+
+							bot.send_message(ids[i], "you have a class now")
+
+							# Set Done to True --> so it will not go in the if statment for a whole minute
+							cell = "D" + str(i+2)
+							ws[cell] = True
+							wb.save(filename)
+
+							print("sent")
+
+
+						
+		# Reset ALL Done boolean variables in excel				
+		
+		if currentTime == "00:00":
+
+			for i in range(len(ids)):
+
+				cell = "D" + str(i+2)
+
+				ws[cell] = False
+
+				wb.save(filename)			
+
+### making a thread so that the bot thread will not be disturbed by our checking loop
+check = threading.Thread(target=checkingNotification)
+
 
 def firstEmptyRow():
 
@@ -60,26 +139,19 @@ def addNotification(Chatid, Day ,Time):
 	df = pandas.read_excel(filename, sheet_name='main')
 	wb = load_workbook(filename)
 	ws = wb.worksheets[0]
-
+	
 	IDI = FindingIDIndex(Chatid)
 
+	Day = Day.lower()
+
 	times =  df['Time'].tolist()
-	userTimes = times[IDI] # type = str
-	userTimes = userTimes.replace("[", "")
-	userTimes = userTimes.replace("]", "")
-	userTimes = userTimes.replace("'", "")
-	userTimes = userTimes.split(",")
-	userTimes = [time.strip() for time in userTimes]
+	userTimes = stringToList(times[IDI]) # type = str
+
 	# userTimes = json.loads(userTimes) # type = list
 
 	
 	days = df['Day'].tolist()
-	userDays = days[IDI] # type = str
-	userDays = userDays.replace("[", "")
-	userDays = userDays.replace("]", "")
-	userDays = userDays.replace("'", "")
-	userDays = userDays.split(",")
-	userDays = [Day.strip() for Day in userDays]
+	userDays = stringToList(days[IDI]) # type = str
 
 	# userDays = json.loads(userDays) # type = list  
 
@@ -99,7 +171,6 @@ def addNotification(Chatid, Day ,Time):
 	posSTATE = 'E' + str(exelIndex)
 	posHOLD = 'F' + str(exelIndex)
 	
-	print(Time)
 	userTimes.append(Time)
 	userTimes = str(userTimes)
 
@@ -228,7 +299,7 @@ def general(message):
 
 
 
-
+check.start()
 
 bot.polling()
 

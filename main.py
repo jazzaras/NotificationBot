@@ -17,7 +17,6 @@ filename = 'data.xlsx'
 hour = ""
 minute = ""
 wantedTime = f"{hour}:{minute}"
-done = False
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
