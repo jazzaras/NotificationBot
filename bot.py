@@ -59,51 +59,53 @@ def checkingNotification():
 	while True:
 
 		thetime.sleep(10)
-
-		df = pandas.read_excel(filename, sheet_name='main')
-		wb = load_workbook(filename)
-		ws = wb.worksheets[0]
-
-
-		# Getting information from excel sheet
-		ids = df['Chatid'].tolist()
-		day = df['Day'].tolist()
-		time = df['Time'].tolist()	
-		done = df['Done'].tolist()
-
-		# Getting times and dates
-		current = datetime.now()
-		dayName = current.strftime('%a').lower()
-		currentTime = current.strftime("%H:%M")
+		try:
+			df = pandas.read_excel(filename, sheet_name='main')
+			wb = load_workbook(filename)
+			ws = wb.worksheets[0]
 
 
+			# Getting information from excel sheet
+			ids = df['Chatid'].tolist()
+			day = df['Day'].tolist()
+			time = df['Time'].tolist()	
+			done = df['Done'].tolist()
+
+			# Getting times and dates
+			current = datetime.now()
+			dayName = current.strftime('%a').lower()
+			currentTime = current.strftime("%H:%M")
 
 
 
 
-		# loop for x times --> x is the number of ids
-		for i in range(len(ids)):
 
-			userdays = stringToList(day[i])
-			usertimes = stringToList(time[i])
-			userdones = stringToList(done[i]) 
 
-			for x in range(len(userdays)):
-				if dayName == userdays[x]:
-					if currentTime == usertimes[x]:
-						if userdones[x] == "False":
-							# Send Noti0fication
+			# loop for x times --> x is the number of ids
+			for i in range(len(ids)):
 
-							bot.send_message(ids[i], "you have a class now")
+				userdays = stringToList(day[i])
+				usertimes = stringToList(time[i])
+				userdones = stringToList(done[i]) 
 
-							# Set Done (one item in the list) to True --> so it will not go in the if statment for a whole minute
-							cell = "D" + str(i+2)
-							userdones[x] = "True"
-							ws[cell] = str(userdones)
-							wb.save(filename)
+				for x in range(len(userdays)):
+					if dayName == userdays[x]:
+						if currentTime == usertimes[x]:
+							if userdones[x] == "False":
+								# Send Noti0fication
 
-							print("sent")
+								bot.send_message(ids[i], "you have a class now")
 
+								# Set Done (one item in the list) to True --> so it will not go in the if statment for a whole minute
+								cell = "D" + str(i+2)
+								userdones[x] = "True"
+								ws[cell] = str(userdones)
+								wb.save(filename)
+
+								print("sent")
+		except:
+			thetime.sleep(5)
+			continue
 
 						
 		# Reset ALL Done boolean variables in excel				
@@ -225,8 +227,8 @@ def addNotification(Chatid, Day ,Time):
 	ws[posSTATE] = "sce"	
 	ws[posHOLD] = "nothing"
 
-
 	wb.save(filename)
+
 
 
 
