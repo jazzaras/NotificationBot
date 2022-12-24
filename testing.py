@@ -12,7 +12,6 @@ import pickle
 # # IDI is the id index and time index and so on... it is the user index when all values are in a list
 # # excelIndex on the other hand is the row in excel file in which the user information are in
 
-# BOT_TOKEN = "5795294189:AAEmDCQ9t0SmznafZEBP-Ivrc7HS2IDZW8I"
 
 # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # filename = 'data.xlsx'
@@ -77,8 +76,8 @@ import pickle
 
 # checkingNotification()
 
-# with open("data.pickle", "wb") as file:
-# 	pickle.dump({}, file)
+with open("data.pickle", "wb") as file:
+	pickle.dump({}, file)
 
 with open("data.pickle", "rb") as file:
 	print(pickle.load(file))

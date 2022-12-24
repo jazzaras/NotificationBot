@@ -11,7 +11,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 path = os.path.join(BASE_DIR, 'data.xlsx')
 
-BOT_TOKEN = "5795294189:AAEmDCQ9t0SmznafZEBP-Ivrc7HS2IDZW8I"
 filename = 'data.xlsx'
 
 hour = ""

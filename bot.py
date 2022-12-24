@@ -69,6 +69,25 @@ def clear(chatid):
 	with open("data.pickle", 'wb') as file:
 		pickle.dump(data, file)	 
 
+def addUserM(message):
+	userData = {
+		"name" : str(message.from_user.first_name),
+		"chatid" : str(message.chat.id),
+		"notifications" : [],
+		"state" : "non",
+		"holdValue" : ""
+	}	
+
+	data = Rfile()
+
+	if str(message.chat.id) not in data:
+		data[str(message.chat.id)] = userData
+
+		print(data)
+
+	with open("data.pickle", 'wb') as file:
+		pickle.dump(data, file)    
+
 # a function that loops through our excel file and send messages if time, day is now
 def checkingNotification():
 	
@@ -181,9 +200,11 @@ def welcome(message):
 @bot.message_handler(commands=["add" , "Add"])
 def adding(message):
 
-	with open("data.pickle", "rb") as file:
-		data = pickle.load(file)
+	data = Rfile()
 
+	if str(message.chat.id) not in data:
+		addUserM(message)
+		data = Rfile()	
 
 
 	data[(str(message.chat.id))]["state"]  = "waitingForDay"
@@ -198,14 +219,25 @@ def adding(message):
 @bot.message_handler(commands=["clear", "Clear"])
 def clearing(message):
 
+	data = Rfile()
+
+	if str(message.chat.id) not in data:
+		addUserM(message)
+		data = Rfile()	
+
 	clear(message.chat.id)
 
 	bot.send_message(message.chat.id, "Done... All notifications where deleted")
 
 @bot.message_handler(commands=["show", "Show"])
 def show(message):
+	
 	data = Rfile()
 
+	if str(message.chat.id) not in data:
+		addUserM(message)
+		data = Rfile()	
+	
 	notifications = data[str(message.chat.id)]['notifications']
 
 	if notifications == []:
@@ -219,6 +251,13 @@ def show(message):
 	bot.send_message(message.chat.id, notificationsMessage)
 @bot.message_handler(commands=["contact", "Contact"])
 def contact(message):
+
+	data = Rfile()
+
+	if str(message.chat.id) not in data:
+		addUserM(message)
+		data = Rfile()		
+
 	bot.send_message(message.chat.id, "@jazzaras")	
 	
 @bot.message_handler()
@@ -227,6 +266,11 @@ def general(message):
 	mes = (str(message.text)).strip()
 
 	data = Rfile()
+
+	if str(message.chat.id) not in data:
+		addUserM(message)
+		data = Rfile()
+		print("was not in data")	
 
 	if data == "err":
 		return
