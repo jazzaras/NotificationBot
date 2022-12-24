@@ -1,0 +1,11 @@
+last thoughts:
+- add cancel method --> that will make state = sce or non and hold = ''     	     DONE
+- make the bot say hello <userName>						     DONE
+- add a contact option 								     DONE						     					
+- add a show notifications command --> that will show all notifications for user     DONE
+- finally a git add and commit
+- make bot token a secret in repl
+
+
+
+******READY TO PUBLISH*******

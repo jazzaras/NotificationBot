@@ -1,5 +1,5 @@
 import telebot
-import time as thetime
+import time
 import pandas
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 import threading
 import os
+import pickle
 
 # IDI is the id index and time index and so on... it is the user index when all values are in a list
 # excelIndex on the other hand is the row in excel file in which the user information are in
@@ -18,8 +19,13 @@ filename = 'data.xlsx'
 path = os.path.join(BASE_DIR, filename)
 
 bot = telebot.TeleBot(BOT_TOKEN)
-days = ['sun', 'mon', 'tue', 'wed', 'Thu', 'fri', 'sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+days = ['sun', 'mon', 'tue', 'wed', 'Thu', 'fri', 'sat', 'Sun', 'Mon', 'Tue', 'Wed', 'thu', 'Fri', 'Sat']
 numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+
+
+
+
 
 def stringToList(StringinListFormat):
 	theList = StringinListFormat.replace("[", "")
@@ -29,262 +35,165 @@ def stringToList(StringinListFormat):
 	theList = [item.strip() for item in theList]
 	return theList
 
-def clear(Chatid):
+#  function that will reset state and holdValue
+def cancel(chatid):
+	
+	data = Rfile()
+	data[str(chatid)]['state'] = 'non'
+	data[str(chatid)]['holdValue'] = ''
 
-	df = pandas.read_excel(filename, sheet_name='main')
-	wb = load_workbook(filename)
-	ws = wb.worksheets[0]
+	return data
 
-	exelIndex = (FindingIDIndex(Chatid) + 2)
+def getFull(shortcut):
+	if shortcut == 'sat':
+		return 'Saturday'
+	elif shortcut == 'sun':
+		return 'Sunday'
+	elif shortcut == 'mon':
+		return 'Monday'
+	elif shortcut == 'tue':
+		return 'Tuesday'
+	elif shortcut == 'wed':
+		return 'Wednesday'
+	elif shortcut == 'thu':
+		return 'Thursday'
+	elif shortcut == 'fri':
+		return 'Friday'
 
-	posDAY = 'B' + str(exelIndex)
-	posTIME = 'C' + str(exelIndex)
-	posDONE = 'D' + str(exelIndex)
-	posSTATE = 'E' + str(exelIndex)
-	posHOLD = 'F' + str(exelIndex)	
+def clear(chatid):
 
+	data = Rfile()	
 
-
-	ws[posTIME] = "[]"
-	ws[posDAY] = "[]"
-	ws[posDONE] = "[]"
-	ws[posSTATE] = "non"
-	ws[posHOLD] = "nothing"
-
-	wb.save(filename)
+	data[str(chatid)]['notifications'] = []
+	
+	with open("data.pickle", 'wb') as file:
+		pickle.dump(data, file)	 
 
 # a function that loops through our excel file and send messages if time, day is now
 def checkingNotification():
 	
 	while True:
 
-		thetime.sleep(10)
-		try:
-			df = pandas.read_excel(filename, sheet_name='main')
-			wb = load_workbook(filename)
-			ws = wb.worksheets[0]
+		# Getting times and dates
+		current = datetime.now()
+		dayName = current.strftime('%a').lower()
+		currentTime = current.strftime("%H:%M")
 
 
-			# Getting information from excel sheet
-			ids = df['Chatid'].tolist()
-			day = df['Day'].tolist()
-			time = df['Time'].tolist()	
-			done = df['Done'].tolist()
+		# gitting data
 
-			# Getting times and dates
-			current = datetime.now()
-			dayName = current.strftime('%a').lower()
-			currentTime = current.strftime("%H:%M")
+		data = Rfile()
 
 
 
+		# loop for x times --> x is the number of ids
+
+		for chatid in data:
+			for notification in data[chatid]['notifications']:
+				if notification[0] == dayName:
+					if notification[1] == currentTime:
+						if notification[2] == False:
+							notification[2] = True
+							with open("data.pickle", "wb") as file:
+								pickle.dump(data, file)
+							bot.send_message(chatid, "you have a class now")
+							print(f"sent to {data[chatid]['name']}")
 
 
-
-			# loop for x times --> x is the number of ids
-			for i in range(len(ids)):
-
-				userdays = stringToList(day[i])
-				usertimes = stringToList(time[i])
-				userdones = stringToList(done[i]) 
-
-				for x in range(len(userdays)):
-					if dayName == userdays[x]:
-						if currentTime == usertimes[x]:
-							if userdones[x] == "False":
-								# Send Noti0fication
-
-								bot.send_message(ids[i], "you have a class now")
-
-								# Set Done (one item in the list) to True --> so it will not go in the if statment for a whole minute
-								cell = "D" + str(i+2)
-								userdones[x] = "True"
-								ws[cell] = str(userdones)
-								wb.save(filename)
-
-								print("sent")
-		except:
-			thetime.sleep(5)
-			continue
 
 						
 		# Reset ALL Done boolean variables in excel				
 		
 		if currentTime == "00:00":
 			
-			for i in range(len(ids)):
-				userdones = stringToList(done[i])
-				print(userdones)
-				cell = "D" + str(i+2)								 
-				for x in range(userdones[i]):
+			for chatid in data:
+				for notification in data[chatid]['notifications']:
+					notification[2] = False	
 
-					userdones[x] = "False"
 
-				ws[cell] = str(userdones)
-				wb.save(filename)
-
+			with open("data.pickle", 'wb') as file:
+				pickle.dump(data, file)
 			print("cleared all dones")
+			print(data)	
+		time.sleep(10)
 
-
-### making a thread so that the bot thread will not be disturbed by our checking loop
+## making a thread so that the bot thread will not be disturbed by our checking loop
 check = threading.Thread(target=checkingNotification)
 
 
-def firstEmptyRow():
 
-    df = pandas.read_excel(filename, sheet_name='main')
-    
-    ids =  df['Chatid'].tolist()
-
-    firstEmpytCell = len(ids)+2
-
-    for i in range(len(ids)):
-        
-        id_ = str(ids[i]) 
+def addNotification(chatid, Day ,Time):
 
 
-        if id_ == "nan":
-            firstEmpytCell = i+2
-            return firstEmpytCell
+	data = Rfile()
 
-    return firstEmpytCell
-
-def FindingIDIndex(Chatid):
-
-    df = pandas.read_excel(filename, sheet_name='main')
-    
-    ids =  df['Chatid'].tolist()
-
-    cell = len(ids) -1
-
-    for i in range(len(ids)):
-        
-        id_ = str(ids[i])
-
-		# print(id_, Chatid)
-
-        if id_ == str(Chatid):
-            cell = i
-            return (cell)
-    return (cell)    
+	Day = Day.lower()	
+	chatid = str(chatid)
 
 
+	notification = [Day, Time, False]
 
-def addNotification(Chatid, Day ,Time):
+	data[chatid]["notifications"].append(notification)
+	data[chatid]["state"] = 'sce'
+	data[chatid]["holdValue"] = ''
 
-	df = pandas.read_excel(filename, sheet_name='main')
-	wb = load_workbook(filename)
-	ws = wb.worksheets[0]
-	
-	IDI = FindingIDIndex(Chatid)
-
-	Day = Day.lower()
-
-	times =  df['Time'].tolist()
-	userTimes = stringToList(times[IDI]) # type = str
-
-	# userTimes = json.loads(userTimes) # type = list
-
-	
-	days = df['Day'].tolist()
-	userDays = stringToList(days[IDI]) # type = str
-
-	dones = df['Done'].tolist()
-	userDones = stringToList(dones[IDI])
-
-	# userDays = json.loads(userDays) # type = list  
-
-	exelIndex = IDI + 2
-
-	# for i in userTimes:
-	# 	if i == '':
-	# 		userTimes.remove(i)
-
-	# for i in userDays:
-	# 	if i == '':
-	# 		userDays.remove(i)
+	print("added")
+	return data
 
 
-	posDAY = 'B' + str(exelIndex)
-	posTIME = 'C' + str(exelIndex)
-	posDONE = 'D' + str(exelIndex)
-	posSTATE = 'E' + str(exelIndex)
-	posHOLD = 'F' + str(exelIndex)
-	
-	userTimes.append(Time)
-	userTimes = str(userTimes)
-
-	userDays.append(Day)
-	userDays = str(userDays)
-
-	userDones.append('False')
-	userDones = str(userDones)
-
-
-	ws[posDAY] = userDays
-	ws[posTIME] = userTimes
-	ws[posDONE] = userDones
-	ws[posSTATE] = "sce"	
-	ws[posHOLD] = "nothing"
-
-	wb.save(filename)
-
-
-
-
-
+def Rfile():
+	try:
+		with open("data.pickle", "rb") as file:
+			data = pickle.load(file)
+		return data	
+	except:
+		print("err ocurd")
+		return "err"
 
 
 
 @bot.message_handler(commands=["start", "help"])
 def welcome(message):
 	bot.send_message(message.chat.id, f"hay {message.from_user.first_name} \n welcome to the graetest bot ever made")
-	bot.send_message(message.chat.id, "commamds: \n /add ==> to add weekly notifications \n /clear ==> to clear all notifictions")
+	bot.send_message(message.chat.id, "commamds: \n /Add ==> to add weekly notifications \n /Show ==> to show all notifications \n /Clear ==> to clear all notifictions \n /Contact ==> to contact the developer")
 
-	df = pandas.read_excel(filename, sheet_name='main')
-	wb = load_workbook(filename)
-	ws = wb.worksheets[0]
+	userData = {
+		"name" : str(message.from_user.first_name),
+		"chatid" : str(message.chat.id),
+		"notifications" : [],
+		"state" : "non",
+		"holdValue" : ""
+	}	
 
-	if message.chat.id in df['Chatid'].tolist():
-		print("in system")
-		return
+	data = Rfile()
+
+	if str(message.chat.id) not in data:
+		data[str(message.chat.id)] = userData
+
+		print(data)
+
+	with open("data.pickle", 'wb') as file:
+		pickle.dump(data, file)
 
 
-	FER = firstEmptyRow()
 
-	posID = 'A' + str(FER)
-	posDAY = 'B' + str(FER)
-	posTIME = 'C' + str(FER)
-	posDONE = 'D' + str(FER)
-	posSTATE = 'E' + str(FER)
-	posHOLD = 'F' + str(FER)
-
-
-	ws[posID] = message.chat.id
-	ws[posDONE] = "[]"
-	ws[posDAY] = "[]"
-	ws[posTIME] = "[]"	
-	ws[posSTATE] = "non"
-	ws[posHOLD] = "nothing"
-
-	wb.save(filename)	
-
+		
 @bot.message_handler(commands=["add" , "Add"])
 def adding(message):
 
-	df = pandas.read_excel(filename, sheet_name='main')
-	wb = load_workbook(filename)
-	ws = wb.worksheets[0]
-	
-	IDI = FindingIDIndex(message.chat.id)
-	exelIndex = IDI + 2
-	
-	posSTATE = 'E' + str(exelIndex)
+	with open("data.pickle", "rb") as file:
+		data = pickle.load(file)
+
+
+
+	data[(str(message.chat.id))]["state"]  = "waitingForDay"
+
+
+	with open("data.pickle", "wb") as file:
+		pickle.dump(data, file)
 
 	bot.send_message(message.chat.id, "at what day is you lecture(Sun / Mon / Tue / Wed / Thu / Fri / Sat)")
 	
-	ws[posSTATE] = 'waitingForDay'
-	wb.save(filename)
 
 @bot.message_handler(commands=["clear", "Clear"])
 def clearing(message):
@@ -293,51 +202,60 @@ def clearing(message):
 
 	bot.send_message(message.chat.id, "Done... All notifications where deleted")
 
+@bot.message_handler(commands=["show", "Show"])
+def show(message):
+	data = Rfile()
 
+	notifications = data[str(message.chat.id)]['notifications']
+
+	if notifications == []:
+		bot.send_message(message.chat.id, "You don't have any notifications yet")
+		return
+
+	notificationsMessage = 'you have a notifiction on: \n'
+	for notification in notifications:
+		notificationsMessage += f'{getFull(notification[0])} at {notification[1]} \n' 
+
+	bot.send_message(message.chat.id, notificationsMessage)
+@bot.message_handler(commands=["contact", "Contact"])
+def contact(message):
+	bot.send_message(message.chat.id, "@jazzaras")	
 	
 @bot.message_handler()
 def general(message):
 	
 	mes = (str(message.text)).strip()
 
-	df = pandas.read_excel(filename, sheet_name='main')
-	wb = load_workbook(filename)
-	ws = wb.worksheets[0]
+	data = Rfile()
 
-	IDI = FindingIDIndex(message.chat.id)
-	exelIndex = IDI + 2
+	if data == "err":
+		return
 
-	posSTATE = 'E' + str(exelIndex)
-	posHOLD = 'F' + str(exelIndex)
+	state = data[str(message.chat.id)]["state"]
 
-	states = df["State"].tolist()
 
-	# print(states, IDI)
+	holdValue = data[str(message.chat.id)]["holdValue"]
 
-	userStat = states[IDI]
 
-	holdValues = df["Hold"].tolist()
-	userHoldValue = holdValues[IDI]	
-
-	# print(userStat)
-
-	if (userStat == "non") or (userStat == "sce"):
+	if (state == "non") or (state == "sce"):
 		if message.text == "hay" or message.text == "Hay":
 			print(message)
-			bot.reply_to(message, "Hello")
+			bot.reply_to(message, f"Hello {message.from_user.first_name}")
 		else:
 			bot.reply_to(message, "I did not understand...\n you can ask for /help if your lost \n or you can say hay...")
 	
-	elif userStat == "waitingForDay":
+	elif state == "waitingForDay":
 		if mes in days:
-			ws[posHOLD] = mes
-			ws[posSTATE] = 'waitingForTime'
-			wb.save(filename)
+			data[str(message.chat.id)]["holdValue"] = mes
+			data[str(message.chat.id)]["state"] = "waitingForTime"
 			bot.reply_to(message, "good, now enter a time in 24H Format ex.(14:59,, 09:12, 15:02)")
+		elif mes == 'cancel':
+			data = cancel(message.chat.id)
+			bot.reply_to(message, "ok")
 		else:
-			bot.reply_to(message, "not a valid Day")
+			bot.reply_to(message, "not a valid Day\nto cancel --> send 'cancel'")
 	
-	elif userStat == "waitingForTime":
+	elif state == "waitingForTime":
 
 		timeFor = mes.replace(":", "")
 
@@ -348,23 +266,27 @@ def general(message):
 		    valid = False
 
 		if valid and len(mes) == 5 and mes[2] == ":" and (mes[0] in numbers) and (mes[1] in numbers) and (mes[3] in numbers) and (mes[4] in numbers):
-			day = userHoldValue 
-			addNotification(message.chat.id, day, mes)
+			day = holdValue 
+			data = addNotification(message.chat.id, day, mes)
 			bot.reply_to(message, "Perfect... your notification has been added")
-			
+		elif mes == 'cancel':
+			data = cancel(message.chat.id)
+			bot.reply_to(message, "ok")		
 		else:
-			bot.reply_to(message, "not a valid Time \nmake sure you enter Time with zeros.. ex: \n 01:20")
+			bot.reply_to(message, "not a valid Time \nmake sure you enter Time with zeros.. ex: \n 01:20\nto cancel --> send 'cancel'")
 
-
+	with open("data.pickle", "wb") as file:
+		pickle.dump(data, file)
 
 
 check.start()
 
-while True:
-    try:
-        bot.polling(non_stop=True, interval=0)
-    except Exception as e:
-        print("error: ", e)
-        thetime.sleep(5)
-        continue
+# while True:
+#     try:
+#         bot.polling(non_stop=True, interval=0)
+#     except Exception as e:
+#         print("error: ", e)
+#         time.sleep(5)
+#         continue
 
+bot.polling()
