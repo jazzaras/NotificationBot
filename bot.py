@@ -8,6 +8,8 @@ from datetime import datetime
 import threading
 import os
 import pickle
+import pytz
+
 
 # IDI is the id index and time index and so on... it is the user index when all values are in a list
 # excelIndex on the other hand is the row in excel file in which the user information are in
@@ -23,7 +25,7 @@ days = ['sun', 'mon', 'tue', 'wed', 'Thu', 'fri', 'sat', 'Sun', 'Mon', 'Tue', 'W
 numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 
-
+tz = pytz.timezone("Asia/Riyadh")
 
 
 
