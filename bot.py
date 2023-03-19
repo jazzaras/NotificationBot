@@ -14,7 +14,7 @@ import pytz
 # IDI is the id index and time index and so on... it is the user index when all values are in a list
 # excelIndex on the other hand is the row in excel file in which the user information are in
 
-BOT_TOKEN = "5795294189:AAEmDCQ9t0SmznafZEBP-Ivrc7HS2IDZW8I"
+BOT_TOKEN = "enter your bot token here"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 filename = 'data.xlsx'
@@ -259,7 +259,7 @@ def contact(message):
 	if str(message.chat.id) not in data:
 		addUserM(message)
 		data = Rfile()		
-
+	#replace my username with yours
 	bot.send_message(message.chat.id, "@jazzaras")	
 	
 @bot.message_handler()
